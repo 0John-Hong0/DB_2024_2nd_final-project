@@ -1,3 +1,4 @@
 *.hwp
 *.pdf
 *.zip
+frontend/assets/uploaded_images/*

@@ -104,10 +104,12 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
 	user = db.query(User).where(User.email == email).where(User.hashed_password == password).first()
 	return user
 
+
+
 @app.get("/user/rooms", tags=["users"])
 def get_user_rooms(user_id: int, db: Session = Depends(get_db)):
-	user = db.query(User).where(User.user_id == user_id).first()
-	return user.joined_rooms
+	# user = db.query(User).where(User.user_id == user_id).first()
+	# return user.joined_rooms
 	rooms = db.query(ChatRoom).join(ChatRoomUsers).filter(ChatRoomUsers.user_id == user_id).all()
 	return rooms
 
@@ -118,14 +120,18 @@ def create_room(chat_room: str = Form(...), image: Optional[UploadFile] = None, 
 	try:
 		chat_room_data = json.loads(chat_room)  # Parse the string into a dictionary
 	except json.JSONDecodeError:
-		raise HTTPException(status_code=400, detail="Invalid JSON in 'user' field")
+		raise HTTPException(status_code=400, detail="Invalid JSON in 'chat_room' field")
 	
 	chat_room_schema = ChatRoomSchema(**chat_room_data)
+
+	# print(chat_room_schema)
+	# print(image)
 	
 
 	db_chat_room = ChatRoom(**chat_room_schema.model_dump())
 	db.add(db_chat_room)
-
+	db.commit()
+	db.refresh(db_chat_room)
 
 	try:
 		contents = image.file.read()
@@ -136,11 +142,16 @@ def create_room(chat_room: str = Form(...), image: Optional[UploadFile] = None, 
 		image.file.close()
 
 		db_chat_room.room_picture = os.path.join("assets", "uploaded_images", image_name)
-	except:
-		pass
+	except Exception as e:
+		print(e)
 	
+	# print(db_chat_room.room_id)
+
+	chat_room_users = ChatRoomUsers(user_id=db_chat_room.created_by, room_id=db_chat_room.room_id)
+	db.add(chat_room_users)
 	db.commit()
-	db.refresh(db_chat_room)
+	
+	print(db_chat_room.name)
 	return db_chat_room
 	
 

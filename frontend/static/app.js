@@ -4,7 +4,9 @@ const userBtn = document.getElementById("user");
 const newRoomBtn = document.getElementById("new_room");
 const chatList = document.getElementById("messages");
 const roomTitle = document.getElementById("room_name");
+
 const login_form = document.getElementById("login_form");
+const new_room_form = document.getElementById("new_room_form");
 
 let currentRoom = null;
 let socket = null;
@@ -163,6 +165,8 @@ async function login() {
 				userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`
 			}
 
+			fetchRooms();
+
 		} else {
 			console.error("Error:", response);
         	alert("user not found\ncheck if email/password is incorrect"); // Show a user-friendly error message
@@ -271,7 +275,8 @@ async function handleRegister() {
 				} else {
 					userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`
 				}
-
+				
+				fetchRooms();
 
 			})
 			.catch((error) => {
@@ -306,10 +311,10 @@ newRoomBtn.addEventListener("click", async () => {
 });
 
 function make_room() {
-	let room_picture = login_form.querySelector('input[name="room_picture"]').files[0]; // File input
-	let roomname = login_form.querySelector('input[name="name"]').value;
-	let password = login_form.querySelector('input[name="password"]').value;
-	let rePassword = login_form.querySelector('input[name="repassword"]').value;
+	let room_picture = new_room_form.querySelector('input[name="room_picture"]').files[0]; // File input
+	let roomname = new_room_form.querySelector('input[name="name"]').value;
+	let password = new_room_form.querySelector('input[name="password"]').value;
+	let rePassword = new_room_form.querySelector('input[name="repassword"]').value;
 
 	if (!roomname.trim() || !password.trim()) {
 		alert("room name and password fields cannot be empty!");
@@ -327,6 +332,7 @@ function make_room() {
 
 	let raw;
 	let requestOptions;
+	// console.log(room_picture);
 	if (room_picture) {
 		raw = JSON.stringify({
 			created_by: userData.user_id,
@@ -373,6 +379,7 @@ function make_room() {
 					throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
 				});
 			}
+
 			return response.json();
 		})
 		.then((result) => {
@@ -380,40 +387,43 @@ function make_room() {
 
 			if (!newRoom.room_id) return;
 
+			if (!newRoom.recent_message) {
+				newRoom.recent_message = {
+					content:"no recent message"
+				};
+			}
+
 			const div_to_add = `
-			<div class="room" id="room${room.room_id}">
+			<div class="room" id="room${newRoom.room_id}">
 				<img height="30px"/>
 				<div>
-					<h6>${room.name}</h6>
-					<p>${room.recent_message.content}</p>
+					<h6>${newRoom.name}</h6>
+					<p>${newRoom.recent_message.content}</p>
 				</div>
 				<p class="interval"></p>
 			</div>
 			`;
+			
 
-			var time_passed = new Date().getInterval(room.recent_message.timestamp);
 
+			
 			roomList.insertAdjacentHTML("beforeend", div_to_add);
-			const addedRoom = document.getElementById(`room${room.room_id}`);
-
-			if (room.room_picture) {
-				addedRoom.querySelector("img").src = room.room_picture;
+			const addedRoom = document.getElementById(`room${newRoom.room_id}`);
+			
+			if (newRoom.room_picture) {
+				addedRoom.querySelector("img").src = newRoom.room_picture;
 			} else {
 				addedRoom.querySelector("img").src = "assets/chat_room.svg";
 			}
+			
+			addedRoom.addEventListener("click", () => joinRoom(newRoom));
+			
 
-			if (time_passed == 0) {
-				addedRoom.querySelectorAll("p")[1].textContent = "today";
-			} else if (time_passed == 1) {
-				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "day ago";
-			} else {
-				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "days ago";
-			}
+			joinRoom(newRoom);
 
-			addedRoom.addEventListener("click", () => joinRoom(room));
-
-			joinRoom(room);
-
+			const NewRoomForm = document.getElementById("NewRoomForm");
+			NewRoomForm.style.display = "none";
+			new_room_form.reset();
 
 		})
 		.catch((error) => {
@@ -434,29 +444,37 @@ Date.prototype.getInterval = function (otherDate) {
 
 // Fetch chat rooms
 async function fetchRooms() {
-	//   const response = await fetch("/rooms");
-	//   const rooms = await response.json();
-	const rooms = [];
+	const response = await fetch(`/user/rooms?user_id=${userData.user_id}`);
+	const rooms = await response.json();
+	console.log(rooms);
+	// const rooms = [];
 
-	for (var i = 0; i < 25; i++) {
-		rooms.push({
-			room_id: i + 1,
-			created_by: i + 1,
-			recent_message: {
-				message_id: i + 1,
-				sender_id: i + 1,
-				room_id: i + 1,
-				content: `asdffdsa${Math.floor(Math.random() * 100)}`,
-				timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
-			},
-			name: `Dummy Room ${i + 1}`,
-			password: null,
-			created_at: null,
-			room_picture: null,
-		});
-	}
+	// for (var i = 0; i < 25; i++) {
+	// 	rooms.push({
+	// 		room_id: i + 1,
+	// 		created_by: i + 1,
+	// 		recent_message: {
+	// 			message_id: i + 1,
+	// 			sender_id: i + 1,
+	// 			room_id: i + 1,
+	// 			content: `asdffdsa${Math.floor(Math.random() * 100)}`,
+	// 			timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
+	// 		},
+	// 		name: `Dummy Room ${i + 1}`,
+	// 		password: null,
+	// 		created_at: null,
+	// 		room_picture: null,
+	// 	});
+	// }
 
 	rooms.forEach((room) => {
+		if (!room.recent_message) {
+			room.recent_message = {
+				content:"no recent message"
+			};
+		}
+
+
 		const div_to_add = `
 		<div class="room" id="room${room.room_id}">
 			<img height="30px"/>
@@ -468,23 +486,25 @@ async function fetchRooms() {
 		</div>
 		`;
 
-		var time_passed = new Date().getInterval(room.recent_message.timestamp);
-
+		
 		roomList.insertAdjacentHTML("beforeend", div_to_add);
 		const addedRoom = document.getElementById(`room${room.room_id}`);
-
+		
 		if (room.room_picture) {
 			addedRoom.querySelector("img").src = room.room_picture;
 		} else {
 			addedRoom.querySelector("img").src = "assets/chat_room.svg";
 		}
-
-		if (time_passed == 0) {
-			addedRoom.querySelectorAll("p")[1].textContent = "today";
-		} else if (time_passed == 1) {
-			addedRoom.querySelectorAll("p")[1].textContent = time_passed + "day ago";
-		} else {
-			addedRoom.querySelectorAll("p")[1].textContent = time_passed + "days ago";
+		
+		if (!room.recent_message) {
+			var time_passed = new Date().getInterval(room.recent_message.timestamp);
+			if (time_passed == 0) {
+				addedRoom.querySelectorAll("p")[1].textContent = "today";
+			} else if (time_passed == 1) {
+				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "day ago";
+			} else {
+				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "days ago";
+			}
 		}
 
 		addedRoom.addEventListener("click", () => joinRoom(room));
@@ -498,29 +518,29 @@ async function fetchRoomData() {
 	//   const rooms = await response.json();
 	const chats = [];
 
-	for (var i = 0; i < 25; i++) {
-		chats.push({
-			message_id: i + 1,
-			sender:{
-				user_id: i + 1,
-				username: `Dummy User ${i + 1}`,
-				email: i + 1,
-				hashed_password: i + 1,
-				created_at: i + 1,
-				profile_picture: "assets/default_avatar.png",
-			},
-			room_id: 0,
-			content: `Dummy Text ${i + 1}`,
-			timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
-		});
-	}
+	// for (var i = 0; i < 25; i++) {
+	// 	chats.push({
+	// 		message_id: i + 1,
+	// 		sender:{
+	// 			user_id: i + 1,
+	// 			username: `Dummy User ${i + 1}`,
+	// 			email: i + 1,
+	// 			hashed_password: i + 1,
+	// 			created_at: i + 1,
+	// 			profile_picture: "assets/default_avatar.png",
+	// 		},
+	// 		room_id: 0,
+	// 		content: `Dummy Text ${i + 1}`,
+	// 		timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
+	// 	});
+	// }
 	
 
 	chatList.innerHTML = "";
 	chats.forEach((chat) => {
 		add_message(chat.sender, chat.content);
 	});
-	chatList.scrollTop = chatList.scrollHeight;
+	
 }
 
 
@@ -534,10 +554,10 @@ function joinRoom(room) {
 	roomTitle.textContent = currentRoom.name;
 
 	document.getElementById("chat_input").style.display = "block";
-	document.getElementById("room_users").style.display = "";
-	
+	document.getElementById("room_users").style.display = "inline";
+
 	if (room.created_by == userData.user_id) {
-		document.getElementById("room_settings").style.display = "";
+		document.getElementById("room_settings").style.display = "inline";
 	} else {
 		document.getElementById("room_settings").style.display = "none";
 	}
@@ -546,10 +566,8 @@ function joinRoom(room) {
 	socket = new WebSocket(`/ws/${userData.user_id}/${currentRoom.room_id}`);
 
 	socket.addEventListener("message", (event) => {
-		console.log(event)
 		const messageData = JSON.parse(event.data);
 		add_message(messageData.sender, messageData.content);
-		chatList.scrollTop = chatList.scrollHeight;
 	  });
 
 	socket.onclose = () => console.log("Disconnected");
@@ -567,8 +585,7 @@ function send_message(){
 		content: messageInput.value,
 	}
 
-	add_message(userData, messageData.content);
-	chatList.scrollTop = chatList.scrollHeight;
+	add_message(userData, messageData.content);-
 
 	socket.send(JSON.stringify(messageData));
 }
@@ -585,19 +602,8 @@ function add_message(user, value) {
 	`;
 
 	chatList.insertAdjacentHTML("beforeend", div_to_add);
+	chatList.scrollTop = chatList.scrollHeight;
 }
 
-// // Create a new room
-createRoomBtn.addEventListener("click", async () => {
-	const roomName = newRoomInput.value;
-	if (roomName.trim() === "") return;
-	await fetch("http://localhost:8000/api/rooms", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ name: roomName }),
-	});
-	newRoomInput.value = "";
-	fetchRooms();
-});
 
-fetchRooms();
+

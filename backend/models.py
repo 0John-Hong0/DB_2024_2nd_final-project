@@ -12,7 +12,7 @@ class User(Base):
 	email = Column(String(50), unique=True, nullable=False)
 	hashed_password = Column(String(255), nullable=False)
 	created_at = Column(DateTime, default=func.now())
-	profile_picture = Column(String(255), nullable=True)
+	profile_picture = Column(String(255), nullable=True, default="assets/default_avatar.png")
 
 	# joined_rooms = relationship("ChatRoom", secondary="chat_room_users", back_populates="participants")
 

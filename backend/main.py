@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends, Request
 from sqlalchemy.orm import Session
 from .models import User, ChatRoom, Message, ChatRoomUsers
@@ -43,7 +44,7 @@ def get_db():
 
 
 @app.post("/users", tags=["users"])
-def add_user(user: str = Form(...), image:UploadFile = File(None), db: Session = Depends(get_db)):
+def add_user(user: str = Form(...), image: Optional[UploadFile] = None, db: Session = Depends(get_db)):
 	  
 	try:
 		user_data = json.loads(user)  # Parse the string into a dictionary
@@ -63,16 +64,18 @@ def add_user(user: str = Form(...), image:UploadFile = File(None), db: Session =
 	db.add(db_user)
 
 
-	contents = image.file.read()
-	image_name = f"{db_user.username}.jpg"
-	with open(os.path.join(ASSET_DIR, "uploaded_images", image_name), 'wb') as file:
-		file.write(contents)
+	try:
+		contents = image.file.read()
+		image_name = f"{db_user.username}.jpg"
+		with open(os.path.join(ASSET_DIR, "uploaded_images", image_name), 'wb') as file:
+			file.write(contents)
 
-	image.file.close()
+		image.file.close()
 
-
-	db_user.profile_picture = os.path.join("assets", "uploaded_images", image_name)
-
+		db_user.profile_picture = os.path.join("assets", "uploaded_images", image_name)
+	except:
+		pass
+	
 	db.commit()
 	db.refresh(db_user)
 	return db_user
@@ -108,14 +111,38 @@ def get_user_rooms(user_id: int, db: Session = Depends(get_db)):
 	rooms = db.query(ChatRoom).join(ChatRoomUsers).filter(ChatRoomUsers.user_id == user_id).all()
 	return rooms
 
+####################################################################
 
-@app.post("/rooms/", tags=["rooms"])
-def create_room(chat_room: ChatRoomSchema, db: Session = Depends(get_db)):
-	db_chat_room = ChatRoom(**chat_room.model_dump())
+@app.post("/rooms", tags=["rooms"])
+def create_room(chat_room: str = Form(...), image: Optional[UploadFile] = None, db: Session = Depends(get_db)):
+	try:
+		chat_room_data = json.loads(chat_room)  # Parse the string into a dictionary
+	except json.JSONDecodeError:
+		raise HTTPException(status_code=400, detail="Invalid JSON in 'user' field")
+	
+	chat_room_schema = ChatRoomSchema(**chat_room_data)
+	
+
+	db_chat_room = ChatRoom(**chat_room_schema.model_dump())
 	db.add(db_chat_room)
+
+
+	try:
+		contents = image.file.read()
+		image_name = f"room_id{db_chat_room.room_id}.jpg"
+		with open(os.path.join(ASSET_DIR, "uploaded_images", image_name), 'wb') as file:
+			file.write(contents)
+
+		image.file.close()
+
+		db_chat_room.room_picture = os.path.join("assets", "uploaded_images", image_name)
+	except:
+		pass
+	
 	db.commit()
 	db.refresh(db_chat_room)
 	return db_chat_room
+	
 
 
 @app.get("/room/{room_id}", tags=["rooms"])
@@ -163,29 +190,54 @@ connections = {}
 @app.websocket("/ws/{user_id}/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, room_id: int, db: Session = Depends(get_db)):
 	# Check if user is in room
-	membership = db.query(ChatRoomUsers).filter_by(user_id=user_id, room_id=room_id).first()
-	if not membership:
-		await websocket.close(code=1003)  # Close if not a member
-		return
+	# membership = db.query(ChatRoomUsers).filter_by(user_id=user_id, room_id=room_id).first()
+	# if not membership:
+	# 	await websocket.close(code=1003)  # Close if not a member
+	# 	return
 	
 	await websocket.accept()
-	connections[user_id] = websocket
+	if room_id in connections:
+		connections[room_id].append({"user_id": user_id, "websocket": websocket})
+	else:
+		connections[room_id] = [{"user_id": user_id, "websocket": websocket}]
 
-	# Send previous messages when the user joins the room
-	messages = db.query(Message).filter_by(room_id=room_id).all()
-	for message in messages:
-		await websocket.send_text(f"{message.sender.username}: {message.content}")
 	
 	try:
 		while True:
-			data = await websocket.receive_text()
-			message = Message(sender_id=user_id, room_id=room_id, content=data)
-			db.add(message)
-			db.commit()
+			data = eval(await websocket.receive_text())
+			# print(data, type(data), connections)
 
-			# Broadcast message to other users in the room
-			for user_id, conn in connections.items():
-				if user_id != user_id:
-					await conn.send_text(f"{user_id}: {data}")
+			data["sender"] = dict(db.query(User).where(User.user_id == int(data["sender_id"])).first().__dict__)
+			del(data["sender"]["_sa_instance_state"])
+			del(data["sender"]["hashed_password"])
+			del(data["sender"]["created_at"])
+			# print(data["sender"], type(data["sender"]))
+			# await websocket.send_text((data))
+			# await websocket.send_json(data)
+
+
+
+			for room_user in connections[room_id]:
+				# print(room_user)
+				# await room_user["websocket"].send_json(data)
+
+				if room_user["user_id"] != user_id:
+					print(f"from {user_id} to {room_user['user_id']} at {room_user['websocket']}")
+					await room_user["websocket"].send_json(data)
+					# await room_user["websocket"].send_text(json.dumps(data))
+
+			# message = Message(sender_id=user_id, room_id=room_id, content=data)
+			# db.add(message)
+			# db.commit()
+
+			# # Broadcast message to other users in the room
+			# for user_id, conn in connections.items():
+			# 	if user_id != user_id:
+			# 		await conn.send_text(f"{user_id}: {data}")
 	except WebSocketDisconnect:
-		del connections[user_id]
+		for room_user in connections[room_id]:
+			print(room_user)
+			if room_user["user_id"] == user_id:
+				connections[room_id].remove(room_user)
+		# print(e)
+		# connections[room_id].remove({})

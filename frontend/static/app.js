@@ -1,10 +1,8 @@
-const roomList = document.getElementById("rooms");
+const roomList = document.getElementById("room_list");
 const createRoomBtn = document.getElementById("new_room");
 const userBtn = document.getElementById("user");
-// const newRoomInput = document.getElementById("new_room");
-// const messagesDiv = document.getElementById("messages");
-// const messageInput = document.getElementById("message-input");
-// const sendMessageBtn = document.getElementById("send-message");
+const newRoomBtn = document.getElementById("new_room");
+const chatList = document.getElementById("messages");
 const roomTitle = document.getElementById("room_name");
 const login_form = document.getElementById("login_form");
 
@@ -125,7 +123,6 @@ var sha256 = function sha256(ascii) {
 
 /*********************login*********************/
 
-// Fetch chat rooms
 async function login() {
 	const register_elements = document.querySelectorAll(".register");
 	const login_elements = document.querySelectorAll(".login");
@@ -151,10 +148,14 @@ async function login() {
 		let user = await response.json();
 		
 		
-		if (user.email) {
+		if (user.user_id) {
 			userData = user;
 			const LoginForm = document.getElementById("LoginForm");
 			LoginForm.style.display = "none";
+
+			document.getElementById("new_room").style.display = "block";
+			document.getElementById("room_name").innerHTML = "No Room Selected";
+			document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
 			
 			if (userData.profile_picture) {
 				userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`
@@ -228,16 +229,21 @@ async function handleRegister() {
 				hashed_password: sha256(password)
 			});
 
+			var form_data = new FormData();
+			form_data.append("user", raw);
+
+		
+
 			requestOptions = {
 				method: "POST",
 				headers: myHeaders,
-				body: raw,
+				body: form_data,
 				redirect: "follow"
 			  };
 		}
 
 		
-		fetch("http://127.0.0.1:8000/users", requestOptions)
+		fetch("/users", requestOptions)
 			.then((response) => {
 				if(!response.ok) {
 					return response.json().then((err) => {
@@ -248,13 +254,25 @@ async function handleRegister() {
 			})
 			.then((result) => {
 				userData = result;
+
+				if (!userData.user_id) return;
+
 				const LoginForm = document.getElementById("LoginForm");
 				LoginForm.style.display = "none";
+				
+				document.getElementById("new_room").style.display = "block";
+
+				document.getElementById("room_name").innerHTML = "No Room Selected";
+				document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
+
+
 				if (userData.profile_picture) {
 					userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`
 				} else {
 					userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`
 				}
+
+
 			})
 			.catch((error) => {
 				console.error("Error:", error.message);
@@ -268,8 +286,6 @@ function closeForm(form_id) {
 	Form.style.display = "none";
 }
 
-/*********************login*********************/
-
 userBtn.addEventListener("click", async () => {
 	if (userData.user_id) {
 		console.log("user found");
@@ -278,6 +294,134 @@ userBtn.addEventListener("click", async () => {
 		LoginForm.style.display = "block";
 	}
 });
+
+
+
+/*********************login*********************/
+/*********************rooms*********************/
+
+newRoomBtn.addEventListener("click", async () => {
+	const NewRoomForm = document.getElementById("NewRoomForm");
+	NewRoomForm.style.display = "block";
+});
+
+function make_room() {
+	let room_picture = login_form.querySelector('input[name="room_picture"]').files[0]; // File input
+	let roomname = login_form.querySelector('input[name="name"]').value;
+	let password = login_form.querySelector('input[name="password"]').value;
+	let rePassword = login_form.querySelector('input[name="repassword"]').value;
+
+	if (!roomname.trim() || !password.trim()) {
+		alert("room name and password fields cannot be empty!");
+		return;
+	}
+	else if (password != rePassword) {
+		alert("Passwords are different!");
+		return;
+	}
+
+	const myHeaders = new Headers();
+	myHeaders.append("accept", "application/json");
+	// myHeaders.append("Content-Type", "application/json");
+
+
+	let raw;
+	let requestOptions;
+	if (room_picture) {
+		raw = JSON.stringify({
+			created_by: userData.user_id,
+			name: roomname,
+			password: password,
+		});
+		
+		const formdata = new FormData();
+		formdata.append("chat_room", raw);
+		formdata.append("image", room_picture);
+		
+		requestOptions = {
+			method: "POST",
+			headers: myHeaders,
+			body: formdata,
+			redirect: "follow"
+			};
+
+	} else {
+		raw = JSON.stringify({
+			created_by: userData.user_id,
+			name: roomname,
+			password: password,
+		});
+
+		var form_data = new FormData();
+		form_data.append("chat_room", raw);
+
+	
+
+		requestOptions = {
+			method: "POST",
+			headers: myHeaders,
+			body: form_data,
+			redirect: "follow"
+			};
+	}
+
+	
+	fetch("/rooms", requestOptions)
+		.then((response) => {
+			if(!response.ok) {
+				return response.json().then((err) => {
+					throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
+				});
+			}
+			return response.json();
+		})
+		.then((result) => {
+			const newRoom = result;
+
+			if (!newRoom.room_id) return;
+
+			const div_to_add = `
+			<div class="room" id="room${room.room_id}">
+				<img height="30px"/>
+				<div>
+					<h6>${room.name}</h6>
+					<p>${room.recent_message.content}</p>
+				</div>
+				<p class="interval"></p>
+			</div>
+			`;
+
+			var time_passed = new Date().getInterval(room.recent_message.timestamp);
+
+			roomList.insertAdjacentHTML("beforeend", div_to_add);
+			const addedRoom = document.getElementById(`room${room.room_id}`);
+
+			if (room.room_picture) {
+				addedRoom.querySelector("img").src = room.room_picture;
+			} else {
+				addedRoom.querySelector("img").src = "assets/chat_room.svg";
+			}
+
+			if (time_passed == 0) {
+				addedRoom.querySelectorAll("p")[1].textContent = "today";
+			} else if (time_passed == 1) {
+				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "day ago";
+			} else {
+				addedRoom.querySelectorAll("p")[1].textContent = time_passed + "days ago";
+			}
+
+			addedRoom.addEventListener("click", () => joinRoom(room));
+
+			joinRoom(room);
+
+
+		})
+		.catch((error) => {
+			console.error("Error:", error.message);
+			alert(error.message);
+		});
+}
+
 
 Date.prototype.getInterval = function (otherDate) {
 	var interval;
@@ -294,7 +438,7 @@ async function fetchRooms() {
 	//   const rooms = await response.json();
 	const rooms = [];
 
-	for (var i = 0; i < 5; i++) {
+	for (var i = 0; i < 25; i++) {
 		rooms.push({
 			room_id: i + 1,
 			created_by: i + 1,
@@ -305,7 +449,7 @@ async function fetchRooms() {
 				content: `asdffdsa${Math.floor(Math.random() * 100)}`,
 				timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
 			},
-			name: `Room ${i + 1}`,
+			name: `Dummy Room ${i + 1}`,
 			password: null,
 			created_at: null,
 			room_picture: null,
@@ -343,29 +487,104 @@ async function fetchRooms() {
 			addedRoom.querySelectorAll("p")[1].textContent = time_passed + "days ago";
 		}
 
-		addedRoom.addEventListener("click", () => joinRoom(room.room_id, room.name));
+		addedRoom.addEventListener("click", () => joinRoom(room));
 	});
 }
 
+
+
+async function fetchRoomData() {
+	//   const response = await fetch("/rooms");
+	//   const rooms = await response.json();
+	const chats = [];
+
+	for (var i = 0; i < 25; i++) {
+		chats.push({
+			message_id: i + 1,
+			sender:{
+				user_id: i + 1,
+				username: `Dummy User ${i + 1}`,
+				email: i + 1,
+				hashed_password: i + 1,
+				created_at: i + 1,
+				profile_picture: "assets/default_avatar.png",
+			},
+			room_id: 0,
+			content: `Dummy Text ${i + 1}`,
+			timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
+		});
+	}
+	
+
+	chatList.innerHTML = "";
+	chats.forEach((chat) => {
+		add_message(chat.sender, chat.content);
+	});
+	chatList.scrollTop = chatList.scrollHeight;
+}
+
+
+
 // Join a chat room
-function joinRoom(roomId, roomName) {
+function joinRoom(room) {
+	fetchRoomData();
 	if (socket) socket.close();
 
-	currentRoom = roomId;
-	roomTitle.textContent = roomName;
+	currentRoom = room;
+	roomTitle.textContent = currentRoom.name;
+
+	document.getElementById("chat_input").style.display = "block";
+	document.getElementById("room_users").style.display = "";
+	
+	if (room.created_by == userData.user_id) {
+		document.getElementById("room_settings").style.display = "";
+	} else {
+		document.getElementById("room_settings").style.display = "none";
+	}
 
 	// Connect to WebSocket
-	socket = new WebSocket(`ws://localhost:8000/ws/${roomId}`);
+	socket = new WebSocket(`/ws/${userData.user_id}/${currentRoom.room_id}`);
 
-	socket.onmessage = (event) => {
+	socket.addEventListener("message", (event) => {
+		console.log(event)
 		const messageData = JSON.parse(event.data);
-		const messageElem = document.createElement("div");
-		messageElem.textContent = `${messageData.sender}: ${messageData.content}`;
-		messagesDiv.appendChild(messageElem);
-		messagesDiv.scrollTop = messagesDiv.scrollHeight;
-	};
+		add_message(messageData.sender, messageData.content);
+		chatList.scrollTop = chatList.scrollHeight;
+	  });
 
 	socket.onclose = () => console.log("Disconnected");
+}
+
+
+function send_message(){
+	const messageInput = document.getElementById("message_input");
+	// console.log(messageInput.value);
+	// if (!socket || messageInput.value.trim() === "") return;
+
+	const messageData = {
+		sender_id: userData.user_id,
+		room_id: currentRoom.room_id,
+		content: messageInput.value,
+	}
+
+	add_message(userData, messageData.content);
+	chatList.scrollTop = chatList.scrollHeight;
+
+	socket.send(JSON.stringify(messageData));
+}
+
+function add_message(user, value) {
+	const div_to_add = `
+	<div class="chat_box sender_${user.user_id}">
+		<img src="${user.profile_picture}" class="chat_profile_picture"/>
+		<div>
+			<p class="chat_username">${user.username}</p>
+			<p class="chat_message">${value}</p>
+		</div>
+	</div>
+	`;
+
+	chatList.insertAdjacentHTML("beforeend", div_to_add);
 }
 
 // // Create a new room
@@ -381,13 +600,4 @@ createRoomBtn.addEventListener("click", async () => {
 	fetchRooms();
 });
 
-// // Send a message
-// sendMessageBtn.addEventListener("click", () => {
-// 	if (!socket || messageInput.value.trim() === "") return;
-// 	const message = { content: messageInput.value };
-// 	socket.send(JSON.stringify(message));
-// 	messageInput.value = "";
-// });
-
-// Load initial data
 fetchRooms();

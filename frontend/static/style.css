@@ -11,8 +11,16 @@ body {
 	font-size: 1rem;
 	font-style: normal;
 	line-height: normal;
+	text-overflow: ellipsis;
+	
 
 	cursor: default;
+
+
+}
+
+img {
+	clip-path: circle();
 }
 
 /* div {
@@ -194,6 +202,9 @@ input:not([type="file"]):focus {
 .topbar_item p {
 	margin-left: 16px;
 }
+/* .topbar_item img {
+	clip-path: circle();
+} */
 
 /*********************topbar*********************/
 /*********************main*********************/
@@ -231,14 +242,21 @@ input:not([type="file"]):focus {
 #rooms {
 	margin-right: 8px;
 	width: 20%;
+	max-width: 20%;
 }
 #chat {
 	margin-left: 8px;
 	width: 80%;
+	max-width: 80%;
 }
 #chat .box_title {
 	justify-content: space-between;
 
+}
+
+#room_list {
+	overflow: auto;
+	height: calc(100% - 50px);
 }
 
 .room {
@@ -250,6 +268,7 @@ input:not([type="file"]):focus {
 	border-radius: 1.25rem;
 	background: rgba(52, 64, 84, 0.48);
 	color: #e0e0e0;
+	
 
 	margin: 16px 16px;
 	height: 50px;
@@ -257,9 +276,9 @@ input:not([type="file"]):focus {
 	padding: 8px 16px;
 }
 
-#room_list {
-	overflow: auto;
-	height: calc(100% - 50px);
+.room img{
+	width: 34px;
+	/* clip-path: circle(); */
 }
 
 .room div {
@@ -267,12 +286,17 @@ input:not([type="file"]):focus {
 	flex-direction: column;
 	margin-left: 10px;
 
+	overflow: hidden; /* Hides overflowing content */
+    white-space: nowrap; /* Prevents wrapping of text */
+    text-overflow: ellipsis; /* Adds "..." for overflowed text */
+
 	justify-content: space-evenly;
 	height: 100%;
 }
 
 .room div p {
 	font-size: 0.7rem;
+	max-width: 30%;
 }
 
 .interval {
@@ -304,10 +328,21 @@ input:not([type="file"]):focus {
 	z-index: 1;
 }
 
+.new_room {
+	display: none;
+}
+
+.join_room {
+	display: block;
+}
+
+
 
 .new_room_container {
 	padding: 10px;
 }
+
+
 
 
 
@@ -321,7 +356,9 @@ input:not([type="file"]):focus {
 .chat_box {
 	margin: 32px;
 	margin-bottom: 16px;
+	margin-right: 0px;
 	position: relative;
+	max-width: calc(100% - 64px); /* Ensures the container spans its parent */
 }
 
 .chat_box .chat_profile_picture{
@@ -337,7 +374,7 @@ input:not([type="file"]):focus {
 	position: relative;
 	top: 0px;
 	left: 48px;
-	width: calc(100% - 48px);
+	max-width: calc(100% - 64px);
 	margin-top: 8px;
 }
 
@@ -350,11 +387,30 @@ input:not([type="file"]):focus {
 }
 .chat_box .chat_message {
 	margin-top: 4px;
-	color: #FFF;
-	font-size: 1rem;
-	font-style: normal;
-	font-weight: 400;
-	line-height: normal;
+    color: #FFF;
+    font-size: 1rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.5; /* Adjust line spacing for readability */
+
+    white-space: normal; /* Enables text wrapping */
+    overflow: visible;   /* Ensures no text is hidden */
+    word-wrap: break-word; /* Breaks long words to fit within the container */
+    /* max-width: calc(100% - 64px); */
+}
+
+/* .sender_other {
+
+} */
+
+.sender_me {
+	text-align: end;
+	align-items: end;
+}
+
+
+.sender_me .chat_message {
+	text-align: end;
 }
 
 #chat_input {

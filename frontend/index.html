@@ -13,7 +13,7 @@
 
 				<div class="login_popup box" id="LoginForm">
 					<form class="login_container" id="login_form">
-						<div id="top">
+						<div id="login_top">
 							Login
 							<button type="button" class="btn cancel" onclick="closeForm('LoginForm')">X</button>
 						</div>
@@ -59,19 +59,21 @@
 
 						<div class="new_room_popup box" id="NewRoomForm">
 							<form class="new_room_container" id="new_room_form">
-								<div id="top">
+								<div id="new_room_top">
 									new room
 									<button type="button" class="btn cancel" onclick="closeForm('NewRoomForm')">X</button>
 								</div>
 		
-								<p>chat room picture</p>
-								<input type="file" name="room_picture" accept="image/png, image/jpeg" >
-								<input type="text" placeholder="Enter Room Name" name="name">
-								<input type="password" placeholder="Enter Password" name="password">
-								<input type="password" placeholder="Re Enter Password" name="repassword">
+								<p class="new_room">chat room picture</p>
+								<input class="new_room" type="file" name="room_picture" accept="image/png, image/jpeg" >
+								<input class="new_room" type="text" placeholder="Enter Room Name" name="name">
+								<input class="join_room" type="text" placeholder="Enter Room ID" name="room_id">
+								<input class="new_room join_room" type="password" placeholder="Enter Password" name="password">
+								<input class="new_room" type="password" placeholder="Re Enter Password" name="repassword">
 								
 								<div class="spacer"></div>
 								
+								<button class="btn" type="button" onclick="join_room()">join room</button>
 								<button class="btn" type="button" onclick="make_room()">make room</button>
 								
 							</form>
@@ -95,7 +97,8 @@
 								login to use
 							</div>
 
-							<!-- <div class="chat_box">
+	
+							<!-- <div class="chat_box sender_other">
 								<img src="assets/default_avatar.png" class="chat_profile_picture"/>
 								<div>
 									<p class="chat_username">user1</p>
@@ -103,21 +106,22 @@
 								</div>
 							</div>
 
-							<div class="chat_box">
-								<img src="assets/default_avatar.png" class="chat_profile_picture"/>
+							<div class="chat_box sender_me">
 								<div>
-									<p class="chat_username">user1</p>
-									<p class="chat_message">asdfffees 채팅채팅</p>
+									<p class="chat_username">me</p>
+									<p class="chat_message">asdfffees asdfdsafdsafds</p>
 								</div>
 							</div> -->
 
-							
+
+	
+
 						</div>
 
 						<div class="box" id="chat_input">
 							<form>
-								<input type="text" placeholder="enter your message...." id="message_input">
-								<button type="button" onclick="send_message()">
+								<input type="text" placeholder="enter your message...." id="message_input" onkeypress="send_message(event)">
+								<button type="button" onclick="send_message(null)">
 									<img src="assets/message_send.svg"/>
 								</button>
 							</form>

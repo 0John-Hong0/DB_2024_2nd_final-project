@@ -137,40 +137,39 @@ async function login() {
 			element.style.display = "block";
 		});
 
-	} else {
-		let email = login_form.querySelector('input[name="email"]').value;
-		let password = login_form.querySelector('input[name="password"]').value;
-	
-		if (!email.trim() || !password.trim()) {
-			alert("Email and Password fields cannot be empty!");
-			return;
-		}
-	
-		let response = await fetch(`/user?email=${email}&password=${sha256(password)}`);
-		let user = await response.json();
-		
-		
-		if (user.user_id) {
-			userData = user;
-			const LoginForm = document.getElementById("LoginForm");
-			LoginForm.style.display = "none";
+		document.getElementById("login_top").childNodes[0].nodeValue = "Login";
+		return;
+	}
+	let email = login_form.querySelector('input[name="email"]').value;
+	let password = login_form.querySelector('input[name="password"]').value;
 
-			document.getElementById("new_room").style.display = "block";
-			document.getElementById("room_name").innerHTML = "No Room Selected";
-			document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
-			
-			if (userData.profile_picture) {
-				userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`
-			} else {
-				userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`
-			}
+	if (!email.trim() || !password.trim()) {
+		alert("Email and Password fields cannot be empty!");
+		return;
+	}
 
-			fetchRooms();
+	let response = await fetch(`/user?email=${email}&password=${sha256(password)}`);
+	let user = await response.json();
 
+	if (user.user_id) {
+		userData = user;
+		const LoginForm = document.getElementById("LoginForm");
+		LoginForm.style.display = "none";
+
+		document.getElementById("new_room").style.display = "block";
+		document.getElementById("room_name").innerHTML = "No Room Selected";
+		document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
+
+		if (userData.profile_picture) {
+			userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`;
 		} else {
-			console.error("Error:", response);
-        	alert("user not found\ncheck if email/password is incorrect"); // Show a user-friendly error message
+			userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`;
 		}
+
+		fetchRooms();
+	} else {
+		console.error("Error:", response);
+		alert("user not found\ncheck if email/password is incorrect"); // Show a user-friendly error message
 	}
 }
 
@@ -185,105 +184,100 @@ async function handleRegister() {
 		register_elements.forEach((element) => {
 			element.style.display = "block";
 		});
-	} else {
-		let profilePicture = login_form.querySelector('input[name="profile_picture"]').files[0]; // File input
-		let username = login_form.querySelector('input[name="username"]').value;
-		let email = login_form.querySelector('input[name="email"]').value;
-		let password = login_form.querySelector('input[name="password"]').value;
-		let rePassword = login_form.querySelector('input[name="repassword"]').value;
 
-		if (!username.trim() || !email.trim() || !password.trim()) {
-			alert("username, Email and Password fields cannot be empty!");
-			return;
-		}
-		else if (password != rePassword) {
-			alert("Passwords are different!");
-			return;
-		}
+		document.getElementById("login_top").childNodes[0].nodeValue = "Sign up";
 
-		const myHeaders = new Headers();
-		myHeaders.append("accept", "application/json");
-		// myHeaders.append("Content-Type", "application/json");
-
-
-		let raw;
-		let requestOptions;
-		if (profilePicture) {
-			raw = JSON.stringify({
-				username: username,
-				email: email,
-				hashed_password: sha256(password),
-			});
-			
-			const formdata = new FormData();
-			formdata.append("user", raw);
-			formdata.append("image", profilePicture);
-			
-			requestOptions = {
-				method: "POST",
-				headers: myHeaders,
-				body: formdata,
-				redirect: "follow"
-			  };
-
-		} else {
-			raw = JSON.stringify({
-				username: username,
-				email: email,
-				hashed_password: sha256(password)
-			});
-
-			var form_data = new FormData();
-			form_data.append("user", raw);
-
-		
-
-			requestOptions = {
-				method: "POST",
-				headers: myHeaders,
-				body: form_data,
-				redirect: "follow"
-			  };
-		}
-
-		
-		fetch("/users", requestOptions)
-			.then((response) => {
-				if(!response.ok) {
-					return response.json().then((err) => {
-						throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
-					});
-				}
-				return response.json();
-			})
-			.then((result) => {
-				userData = result;
-
-				if (!userData.user_id) return;
-
-				const LoginForm = document.getElementById("LoginForm");
-				LoginForm.style.display = "none";
-				
-				document.getElementById("new_room").style.display = "block";
-
-				document.getElementById("room_name").innerHTML = "No Room Selected";
-				document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
-
-
-				if (userData.profile_picture) {
-					userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`
-				} else {
-					userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`
-				}
-				
-				fetchRooms();
-
-			})
-			.catch((error) => {
-				console.error("Error:", error.message);
-        		alert(error.message); // Show a user-friendly error message
-			});
+		return;
 	}
+	let profilePicture = login_form.querySelector('input[name="profile_picture"]').files[0]; // File input
+	let username = login_form.querySelector('input[name="username"]').value;
+	let email = login_form.querySelector('input[name="email"]').value;
+	let password = login_form.querySelector('input[name="password"]').value;
+	let rePassword = login_form.querySelector('input[name="repassword"]').value;
+
+	if (!username.trim() || !email.trim() || !password.trim()) {
+		alert("username, Email and Password fields cannot be empty!");
+		return;
+	} else if (password != rePassword) {
+		alert("Passwords are different!");
+		return;
+	}
+
+	const myHeaders = new Headers();
+	myHeaders.append("accept", "application/json");
+	
+
+	let raw;
+	let requestOptions;
+	if (profilePicture) {
+		raw = JSON.stringify({
+			username: username,
+			email: email,
+			hashed_password: sha256(password),
+		});
+
+		const formdata = new FormData();
+		formdata.append("user", raw);
+		formdata.append("image", profilePicture);
+
+		requestOptions = {
+			method: "POST",
+			headers: myHeaders,
+			body: formdata,
+			redirect: "follow",
+		};
+	} else {
+		raw = JSON.stringify({
+			username: username,
+			email: email,
+			hashed_password: sha256(password),
+		});
+
+		var form_data = new FormData();
+		form_data.append("user", raw);
+
+		requestOptions = {
+			method: "POST",
+			headers: myHeaders,
+			body: form_data,
+			redirect: "follow",
+		};
+	}
+
+	fetch("/users", requestOptions)
+		.then((response) => {
+			if (!response.ok) {
+				return response.json().then((err) => {
+					throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
+				});
+			}
+			return response.json();
+		})
+		.then((result) => {
+			userData = result;
+
+			if (!userData.user_id) return;
+
+			const LoginForm = document.getElementById("LoginForm");
+			LoginForm.style.display = "none";
+
+			document.getElementById("new_room").style.display = "block";
+
+			document.getElementById("room_name").innerHTML = "No Room Selected";
+			document.querySelector("#messages > div.box").innerHTML = "No Room Selected";
+
+			if (userData.profile_picture) {
+				userBtn.innerHTML = `<img src="${userData.profile_picture}" height="50" width="50"/>`;
+			} else {
+				userBtn.innerHTML = `<img src="assets/default_avatar.png" height="50" width="50"/>`;
+			}
+
+			fetchRooms();
+		})
+		.catch((error) => {
+			console.error("Error:", error.message);
+			alert(error.message); // Show a user-friendly error message
+		});
 }
 
 function closeForm(form_id) {
@@ -300,8 +294,6 @@ userBtn.addEventListener("click", async () => {
 	}
 });
 
-
-
 /*********************login*********************/
 /*********************rooms*********************/
 
@@ -311,6 +303,22 @@ newRoomBtn.addEventListener("click", async () => {
 });
 
 function make_room() {
+	const new_room_elements = document.querySelectorAll(".new_room");
+	const join_room_elements = document.querySelectorAll(".join_room");
+	if (window.getComputedStyle(new_room_elements[0]).display == "none") {
+		join_room_elements.forEach((element) => {
+			element.style.display = "none";
+		});
+
+		new_room_elements.forEach((element) => {
+			element.style.display = "block";
+		});
+
+		document.getElementById("new_room_top").childNodes[0].nodeValue = "new room";
+
+		return;
+	}
+
 	let room_picture = new_room_form.querySelector('input[name="room_picture"]').files[0]; // File input
 	let roomname = new_room_form.querySelector('input[name="name"]').value;
 	let password = new_room_form.querySelector('input[name="password"]').value;
@@ -319,16 +327,14 @@ function make_room() {
 	if (!roomname.trim() || !password.trim()) {
 		alert("room name and password fields cannot be empty!");
 		return;
-	}
-	else if (password != rePassword) {
+	} else if (password != rePassword) {
 		alert("Passwords are different!");
 		return;
 	}
 
 	const myHeaders = new Headers();
 	myHeaders.append("accept", "application/json");
-	// myHeaders.append("Content-Type", "application/json");
-
+	
 
 	let raw;
 	let requestOptions;
@@ -339,18 +345,17 @@ function make_room() {
 			name: roomname,
 			password: password,
 		});
-		
+
 		const formdata = new FormData();
 		formdata.append("chat_room", raw);
 		formdata.append("image", room_picture);
-		
+
 		requestOptions = {
 			method: "POST",
 			headers: myHeaders,
 			body: formdata,
-			redirect: "follow"
-			};
-
+			redirect: "follow",
+		};
 	} else {
 		raw = JSON.stringify({
 			created_by: userData.user_id,
@@ -361,20 +366,17 @@ function make_room() {
 		var form_data = new FormData();
 		form_data.append("chat_room", raw);
 
-	
-
 		requestOptions = {
 			method: "POST",
 			headers: myHeaders,
 			body: form_data,
-			redirect: "follow"
-			};
+			redirect: "follow",
+		};
 	}
 
-	
 	fetch("/rooms", requestOptions)
 		.then((response) => {
-			if(!response.ok) {
+			if (!response.ok) {
 				return response.json().then((err) => {
 					throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
 				});
@@ -389,7 +391,7 @@ function make_room() {
 
 			if (!newRoom.recent_message) {
 				newRoom.recent_message = {
-					content:"no recent message"
+					content: "no recent message",
 				};
 			}
 
@@ -403,28 +405,23 @@ function make_room() {
 				<p class="interval"></p>
 			</div>
 			`;
-			
 
-
-			
 			roomList.insertAdjacentHTML("beforeend", div_to_add);
 			const addedRoom = document.getElementById(`room${newRoom.room_id}`);
-			
+
 			if (newRoom.room_picture) {
 				addedRoom.querySelector("img").src = newRoom.room_picture;
 			} else {
 				addedRoom.querySelector("img").src = "assets/chat_room.svg";
 			}
-			
+
 			addedRoom.addEventListener("click", () => joinRoom(newRoom));
-			
 
 			joinRoom(newRoom);
 
 			const NewRoomForm = document.getElementById("NewRoomForm");
 			NewRoomForm.style.display = "none";
 			new_room_form.reset();
-
 		})
 		.catch((error) => {
 			console.error("Error:", error.message);
@@ -432,6 +429,97 @@ function make_room() {
 		});
 }
 
+function join_room() {
+	const new_room_elements = document.querySelectorAll(".new_room");
+	const join_room_elements = document.querySelectorAll(".join_room");
+	if (window.getComputedStyle(join_room_elements[0]).display == "none") {
+		new_room_elements.forEach((element) => {
+			element.style.display = "none";
+		});
+
+		join_room_elements.forEach((element) => {
+			element.style.display = "block";
+		});
+
+		document.getElementById("new_room_top").childNodes[0].nodeValue = "join room";
+
+		return;
+	}
+
+	
+	let room_id = new_room_form.querySelector('input[name="room_id"]').value;
+	let password = new_room_form.querySelector('input[name="password"]').value;
+
+	if (!room_id.trim() || !password.trim()) {
+		alert("room ID and password fields cannot be empty!");
+		return;
+	}
+
+	const myHeaders = new Headers();
+	myHeaders.append("accept", "application/json");
+	
+	let requestOptions;
+	requestOptions = {
+		method: "POST",
+		headers: myHeaders,
+		redirect: "follow",
+	};
+
+
+	fetch(`/room/${room_id}/${userData.user_id}?password=${password}`, requestOptions)
+		.then((response) => {
+			if (!response.ok) {
+				return response.json().then((err) => {
+					throw new Error(err.detail || `HTTP error! Status: ${response.status}`);
+				});
+			}
+
+			return response.json();
+		})
+		.then((result) => {
+			const newRoom = result;
+
+			if (!newRoom.room_id) return;
+
+			if (!newRoom.recent_message) {
+				newRoom.recent_message = {
+					content: "no recent message",
+				};
+			}
+
+			const div_to_add = `
+		<div class="room" id="room${newRoom.room_id}">
+			<img height="30px"/>
+			<div>
+				<h6>${newRoom.name}</h6>
+				<p>${newRoom.recent_message.content}</p>
+			</div>
+			<p class="interval"></p>
+		</div>
+		`;
+
+			roomList.insertAdjacentHTML("beforeend", div_to_add);
+			const addedRoom = document.getElementById(`room${newRoom.room_id}`);
+
+			if (newRoom.room_picture) {
+				addedRoom.querySelector("img").src = newRoom.room_picture;
+			} else {
+				addedRoom.querySelector("img").src = "assets/chat_room.svg";
+			}
+
+			addedRoom.addEventListener("click", () => joinRoom(newRoom));
+
+			joinRoom(newRoom);
+
+			const NewRoomForm = document.getElementById("NewRoomForm");
+			NewRoomForm.style.display = "none";
+			new_room_form.reset();
+		})
+		.catch((error) => {
+			console.error("Error:", error.message);
+			alert(error.message);
+		});
+}
 
 Date.prototype.getInterval = function (otherDate) {
 	var interval;
@@ -446,7 +534,7 @@ Date.prototype.getInterval = function (otherDate) {
 async function fetchRooms() {
 	const response = await fetch(`/user/rooms?user_id=${userData.user_id}`);
 	const rooms = await response.json();
-	console.log(rooms);
+	// console.log(rooms);
 	// const rooms = [];
 
 	// for (var i = 0; i < 25; i++) {
@@ -468,12 +556,12 @@ async function fetchRooms() {
 	// }
 
 	rooms.forEach((room) => {
+		// console.log(room.recent_message);
 		if (!room.recent_message) {
 			room.recent_message = {
-				content:"no recent message"
+				content: "no recent message",
 			};
 		}
-
 
 		const div_to_add = `
 		<div class="room" id="room${room.room_id}">
@@ -486,17 +574,17 @@ async function fetchRooms() {
 		</div>
 		`;
 
-		
 		roomList.insertAdjacentHTML("beforeend", div_to_add);
 		const addedRoom = document.getElementById(`room${room.room_id}`);
-		
+
 		if (room.room_picture) {
 			addedRoom.querySelector("img").src = room.room_picture;
 		} else {
 			addedRoom.querySelector("img").src = "assets/chat_room.svg";
 		}
-		
+
 		if (!room.recent_message) {
+			// console.log(room.recent_message.timestamp);
 			var time_passed = new Date().getInterval(room.recent_message.timestamp);
 			if (time_passed == 0) {
 				addedRoom.querySelectorAll("p")[1].textContent = "today";
@@ -511,55 +599,32 @@ async function fetchRooms() {
 	});
 }
 
-
-
-async function fetchRoomData() {
-	//   const response = await fetch("/rooms");
-	//   const rooms = await response.json();
-	const chats = [];
-
-	// for (var i = 0; i < 25; i++) {
-	// 	chats.push({
-	// 		message_id: i + 1,
-	// 		sender:{
-	// 			user_id: i + 1,
-	// 			username: `Dummy User ${i + 1}`,
-	// 			email: i + 1,
-	// 			hashed_password: i + 1,
-	// 			created_at: i + 1,
-	// 			profile_picture: "assets/default_avatar.png",
-	// 		},
-	// 		room_id: 0,
-	// 		content: `Dummy Text ${i + 1}`,
-	// 		timestamp: new Date(`2024-11-${29 - i} 10:20:30`),
-	// 	});
-	// }
-	
+async function fetchRoomData(room_id) {
+	const response = await fetch(`/room/${room_id}?user_id=${userData.user_id}`);
+	const chats = await response.json();
 
 	chatList.innerHTML = "";
 	chats.forEach((chat) => {
 		add_message(chat.sender, chat.content);
 	});
-	
 }
-
-
 
 // Join a chat room
 function joinRoom(room) {
-	fetchRoomData();
+	fetchRoomData(room.room_id);
 	if (socket) socket.close();
 
 	currentRoom = room;
 	roomTitle.textContent = currentRoom.name;
 
 	document.getElementById("chat_input").style.display = "block";
-	document.getElementById("room_users").style.display = "inline";
+	// document.getElementById("room_users").style.display = "inline";
 
 	if (room.created_by == userData.user_id) {
-		document.getElementById("room_settings").style.display = "inline";
+		roomTitle.textContent = `currentRoom.name - room id: "${currentRoom.room_id}"   |   room password: "${currentRoom.password}"`;
+		// document.getElementById("room_settings").style.display = "inline";
 	} else {
-		document.getElementById("room_settings").style.display = "none";
+		// document.getElementById("room_settings").style.display = "none";
 	}
 
 	// Connect to WebSocket
@@ -568,42 +633,64 @@ function joinRoom(room) {
 	socket.addEventListener("message", (event) => {
 		const messageData = JSON.parse(event.data);
 		add_message(messageData.sender, messageData.content);
-	  });
+
+		let currRoom = document.querySelector(`#room${currentRoom.room_id} > div > p`);
+		currRoom.innerHTML = messageData.content;
+	});
 
 	socket.onclose = () => console.log("Disconnected");
 }
 
-
-function send_message(){
+function send_message(e) {
 	const messageInput = document.getElementById("message_input");
 	// console.log(messageInput.value);
-	// if (!socket || messageInput.value.trim() === "") return;
+	if (!socket || messageInput.value.trim() === "") return;
 
-	const messageData = {
-		sender_id: userData.user_id,
-		room_id: currentRoom.room_id,
-		content: messageInput.value,
+	// console.log(e);
+	if (e == null || e.keyCode == 13) {
+		const messageData = {
+			sender_id: userData.user_id,
+			room_id: currentRoom.room_id,
+			content: messageInput.value,
+		};
+
+		add_message(userData, messageData.content);
+
+		socket.send(JSON.stringify(messageData));
+
+		let currRoom = document.querySelector(`#room${currentRoom.room_id} > div > p`);
+		currRoom.innerHTML = messageInput.value;
+
+		messageInput.value = "";
 	}
-
-	add_message(userData, messageData.content);-
-
-	socket.send(JSON.stringify(messageData));
 }
 
 function add_message(user, value) {
-	const div_to_add = `
-	<div class="chat_box sender_${user.user_id}">
-		<img src="${user.profile_picture}" class="chat_profile_picture"/>
-		<div>
-			<p class="chat_username">${user.username}</p>
-			<p class="chat_message">${value}</p>
+	let div_to_add;
+
+	if (user.user_id != userData.user_id) {
+		div_to_add = `
+		<div class="chat_box sender_other">
+			<img src="${user.profile_picture}" class="chat_profile_picture"/>
+			<div>
+				<p class="chat_username">${user.username}</p>
+				<p class="chat_message">${value}</p>
+			</div>
 		</div>
-	</div>
-	`;
+		`;
+	} else {
+		div_to_add = `
+		<div class="chat_box sender_me">
+			<div>
+				<p class="chat_username">me</p>
+				<p class="chat_message">${value}</p>
+			</div>
+		</div>
+		`;
+	}
+
+	
 
 	chatList.insertAdjacentHTML("beforeend", div_to_add);
 	chatList.scrollTop = chatList.scrollHeight;
 }
-
-
-

@@ -110,8 +110,43 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
 def get_user_rooms(user_id: int, db: Session = Depends(get_db)):
 	# user = db.query(User).where(User.user_id == user_id).first()
 	# return user.joined_rooms
+	
+	result = []
 	rooms = db.query(ChatRoom).join(ChatRoomUsers).filter(ChatRoomUsers.user_id == user_id).all()
-	return rooms
+	# messages = db.query(Message).filter_by(room_id=room_id).limit(limit).offset(offset).all()
+	for room in rooms:
+		message = db.query(Message).filter(Message.message_id == room.recent_message_id).first()
+		if message:
+			result.append({
+				"room_id": room.room_id,
+				"created_by": room.created_by,
+				"recent_message_id": room.recent_message_id,
+				"name": room.name,
+				"password":room.password,
+				"created_at":room.created_at,
+				"room_picture": room.room_picture,
+				"recent_message": {
+					"message_id": message.message_id,
+					"sender_id": message.sender_id,
+					"room_id": message.room_id,
+					"content": message.content,
+					"timestamp":message.timestamp
+				}
+			})
+		else:
+			result.append({
+				"room_id": room.room_id,
+				"created_by": room.created_by,
+				"recent_message_id": room.recent_message_id,
+				"name": room.name,
+				"password":room.password,
+				"created_at":room.created_at,
+				"room_picture": room.room_picture
+			})
+		# print(type(message))
+		# message["sender"] = db.query(User).where(User.user_id == message.sender_id).first()
+
+	return result
 
 ####################################################################
 
@@ -165,33 +200,109 @@ def get_room_messages(
 	db: Session = Depends(get_db)
 	):
 
-	room = db.query(ChatRoomUsers).where(ChatRoomUsers.room_id == room_id).where(ChatRoomUsers.user_id == user_id).first()
+	room = db.query(ChatRoomUsers).filter((ChatRoomUsers.room_id == room_id) & (ChatRoomUsers.user_id == user_id)).first()
 	if not room:
 		raise HTTPException(status_code=400, detail="can't access")
 
-	messages = db.query(Message).filter_by(room_id=room_id).limit(limit).offset(offset)
-	return messages
+	result = []
+	messages = db.query(Message).filter_by(room_id=room_id).limit(limit).offset(offset).all()
+	for message in messages:
+		sender = db.query(User).filter(User.user_id == message.sender_id).first()
+		result.append({
+			"message_id": message.message_id,
+			"sender_id": message.sender_id,
+			"room_id": message.room_id,
+			"content": message.content,
+			"timestamp": message.timestamp,
+			"sender": {
+				"user_id": sender.user_id,
+				"username": sender.username,
+				"email": sender.email,
+				"profile_picture": sender.profile_picture
+			}
+        })
+		# print(type(message))
+		# message["sender"] = db.query(User).where(User.user_id == message.sender_id).first()
+
+	return result
 
 
-@app.post("/room/{room_id}", tags=["rooms"])
-def get_room_messages(
+@app.post("/room/{room_id}/{user_id}", tags=["rooms"])
+def join_room(
 	room_id: int, 
 	user_id:int,
 	password:str,
 	db: Session = Depends(get_db)
-	):
-
+):
 	room = db.query(ChatRoom).where(ChatRoom.room_id == room_id).first()
 	if not room:
 		raise HTTPException(status_code=404, detail="no room found")
 	
 	if room.password != password:
 		raise HTTPException(status_code=400, detail="password incorrect")
+	
+	if db.query(ChatRoomUsers).filter((ChatRoomUsers.room_id == room_id) & (ChatRoomUsers.user_id == user_id)).first():
+		raise HTTPException(status_code=400, detail="already joined")
 
 	db_ChatRoomUsers = ChatRoomUsers(user_id=user_id, room_id=room_id)
 	db.add(db_ChatRoomUsers)
 	db.commit()
-	return {"message": f"User {user_id} joined room {room_id}"}
+
+
+	result = {}
+
+	message = db.query(Message).filter(Message.message_id == room.recent_message_id).first()
+	if message:
+		result = {
+			"room_id": room.room_id,
+			"created_by": room.created_by,
+			"recent_message_id": room.recent_message_id,
+			"name": room.name,
+			"password":room.password,
+			"created_at":room.created_at,
+			"room_picture": room.room_picture,
+			"recent_message": {
+				"message_id": message.message_id,
+				"sender_id": message.sender_id,
+				"room_id": message.room_id,
+				"content": message.content,
+				"timestamp":message.timestamp
+			}
+		}
+	else:
+		result = {
+			"room_id": room.room_id,
+			"created_by": room.created_by,
+			"recent_message_id": room.recent_message_id,
+			"name": room.name,
+			"password":room.password,
+			"created_at":room.created_at,
+			"room_picture": room.room_picture
+		}
+
+
+	return result
+
+
+# @app.post("/room/{room_id}", tags=["rooms"])
+# def get_room_messages(
+# 	room_id: int, 
+# 	user_id:int,
+# 	password:str,
+# 	db: Session = Depends(get_db)
+# 	):
+
+# 	room = db.query(ChatRoom).where(ChatRoom.room_id == room_id).first()
+# 	if not room:
+# 		raise HTTPException(status_code=404, detail="no room found")
+	
+# 	if room.password != password:
+# 		raise HTTPException(status_code=400, detail="password incorrect")
+
+# 	db_ChatRoomUsers = ChatRoomUsers(user_id=user_id, room_id=room_id)
+# 	db.add(db_ChatRoomUsers)
+# 	db.commit()
+# 	return {"message": f"User {user_id} joined room {room_id}"}
 	
 
 
@@ -201,10 +312,10 @@ connections = {}
 @app.websocket("/ws/{user_id}/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, room_id: int, db: Session = Depends(get_db)):
 	# Check if user is in room
-	# membership = db.query(ChatRoomUsers).filter_by(user_id=user_id, room_id=room_id).first()
-	# if not membership:
-	# 	await websocket.close(code=1003)  # Close if not a member
-	# 	return
+	membership = db.query(ChatRoomUsers).filter_by(user_id=user_id, room_id=room_id).first()
+	if not membership:
+		await websocket.close(code=1003)  # Close if not a member
+		return
 	
 	await websocket.accept()
 	if room_id in connections:
@@ -229,22 +340,26 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, room_id: int, d
 
 
 			for room_user in connections[room_id]:
-				# print(room_user)
-				# await room_user["websocket"].send_json(data)
-
 				if room_user["user_id"] != user_id:
 					print(f"from {user_id} to {room_user['user_id']} at {room_user['websocket']}")
 					await room_user["websocket"].send_json(data)
-					# await room_user["websocket"].send_text(json.dumps(data))
+	
 
-			# message = Message(sender_id=user_id, room_id=room_id, content=data)
-			# db.add(message)
-			# db.commit()
+			message = Message(sender_id=user_id, room_id=room_id, content=data["content"])
+			db.add(message)
+			db.commit()
+			db.refresh(message)
 
-			# # Broadcast message to other users in the room
-			# for user_id, conn in connections.items():
-			# 	if user_id != user_id:
-			# 		await conn.send_text(f"{user_id}: {data}")
+			# ChatRoom.update()
+			# print()
+
+			message_chatroom = db.query(ChatRoom).where(ChatRoom.room_id == room_id).first()
+			message_chatroom.recent_message_id = message.message_id
+
+
+
+			db.commit()
+
 	except WebSocketDisconnect:
 		for room_user in connections[room_id]:
 			print(room_user)

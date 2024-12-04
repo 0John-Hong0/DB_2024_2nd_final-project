@@ -1,0 +1,15 @@
+services:
+    db_project:
+        container_name: db_project
+
+        image: db_project:1.0
+
+        restart: unless-stopped
+
+        ports:
+            - 8083:8080
+
+        volumes:
+            - /home/orangepi/Database_Systems_Project:/code
+
+        command: sh -c "ls && uvicorn backend.main:app --host 0.0.0.0 --port 8080 --reload"

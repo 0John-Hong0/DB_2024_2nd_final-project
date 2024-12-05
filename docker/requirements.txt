@@ -7,4 +7,5 @@ python-multipart==0.0.9
 Jinja2==3.1.4
 sqlalchemy==2.0.32
 pymysql==1.1.1
+cryptography==43.0.3
 websockets==13.0.1

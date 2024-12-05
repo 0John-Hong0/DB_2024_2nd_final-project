@@ -628,7 +628,10 @@ function joinRoom(room) {
 	}
 
 	// Connect to WebSocket
-	socket = new WebSocket(`/ws/${userData.user_id}/${currentRoom.room_id}`);
+	const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+	const socket = new WebSocket(`${protocol}://${window.location.host}/ws/${userData.user_id}/${currentRoom.room_id}`);
+
+	// socket = new WebSocket(`/ws/${userData.user_id}/${currentRoom.room_id}`);
 
 	socket.addEventListener("message", (event) => {
 		const messageData = JSON.parse(event.data);

@@ -621,7 +621,7 @@ function joinRoom(room) {
 	// document.getElementById("room_users").style.display = "inline";
 
 	if (room.created_by == userData.user_id) {
-		roomTitle.textContent = `currentRoom.name - room id: "${currentRoom.room_id}"   |   room password: "${currentRoom.password}"`;
+		roomTitle.textContent = `${currentRoom.name} - room id: "${currentRoom.room_id}"   |   room password: "${currentRoom.password}"`;
 		// document.getElementById("room_settings").style.display = "inline";
 	} else {
 		// document.getElementById("room_settings").style.display = "none";
